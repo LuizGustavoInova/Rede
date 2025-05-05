@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Rede Social Completa</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eee;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #login {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #profile-pic {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #007bff;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 10px;
+      resize: none;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .post {
+      background-color: #f9f9f9;
+      border-left: 4px solid #007bff;
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 5px;
+    }
+
+    .timestamp {
+      color: #666;
+      font-size: 12px;
+    }
+
+    .comment-box {
+      margin-top: 10px;
+    }
+
+    .comment {
+      font-size: 14px;
+      margin-top: 5px;
+      padding-left: 10px;
+      border-left: 2px solid #ccc;
+    }
+
+    .like-btn {
+      background-color: transparent;
+      color: #007bff;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    #user-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Minha Rede Social</h1>
+
+    <div id="login">
+      <p>Insira seu nome e selecione uma foto de perfil:</p>
+      <input type="text" id="username" placeholder="Seu nome">
+      <input type="file" id="profileInput" accept="image/*">
+      <br>
+      <button onclick="fazerLogin()">Entrar</button>
+    </div>
+
+    <div id="user-section" style="display:none;">
+      <img id="profile-pic" src="" alt="Perfil">
+      <strong id="display-name"></strong>
+    </div>
+
+    <textarea id="postText" rows="3" placeholder="O que você está pensando?"></textarea>
+    <button onclick="postar()">Publicar</button>
+
+    <div id="feed"></div>
+  </div>
+
+  <script>
+    let posts = JSON.parse(localStorage.getItem('posts')) || [];
+
+    function fazerLogin() {
+      const username = document.getElementById("username").value.trim();
+      const file = document.getElementById("profileInput").files[0];
+
+      if (!username || !file) {
+        alert("Por favor, preencha seu nome e selecione uma imagem.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        localStorage.setItem('username', username);
+        localStorage.setItem('profilePic', e.target.result);
+        mostrarUsuario();
+        carregarPosts();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function mostrarUsuario() {
+      const name = localStorage.getItem("username");
+      const pic = localStorage.getItem("profilePic");
+
+      if (name && pic) {
+        document.getElementById("login").style.display = "none";
+        document.getElementById("user-section").style.display = "flex";
+        document.getElementById("display-name").textContent = name;
+        document.getElementById("profile-pic").src = pic;
+      }
+    }
+
+    function postar() {
+      const texto = document.getElementById("postText").value.trim();
+      const name = localStorage.getItem("username");
+      const pic = localStorage.getItem("profilePic");
+      if (!texto) return;
+
+      const novoPost = {
+        autor: name,
+        imagem: pic,
+        texto,
+        curtidas: 0,
+        comentarios: [],
+        data: new Date().toLocaleString()
+      };
+
+      posts.unshift(novoPost);
+      localStorage.setItem("posts", JSON.stringify(posts));
+      document.getElementById("postText").value = "";
+      carregarPosts();
+    }
+
+    function curtir(index) {
+      posts[index].curtidas++;
+      localStorage.setItem("posts", JSON.stringify(posts));
+      carregarPosts();
+    }
+
+    function comentar(index) {
+      const comentario = prompt("Digite seu comentário:");
+      if (comentario) {
+        posts[index].comentarios.push(comentario);
+        localStorage.setItem("posts", JSON.stringify(posts));
+        carregarPosts();
+      }
+    }
+
+    function carregarPosts() {
+      const feed = document.getElementById("feed");
+      feed.innerHTML = "";
+
+      posts.forEach((post, index) => {
+        const div = document.createElement("div");
+        div.className = "post";
+
+        div.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="${post.imagem}" width="40" height="40" style="border-radius:50%">
+            <strong>${post.autor}</strong>
+          </div>
+          <p>${post.texto}</p>
+          <div class="timestamp">${post.data}</div>
+          <button class="like-btn" onclick="curtir(${index})">👍 Curtir (${post.curtidas})</button>
+          <button class="like-btn" onclick="comentar(${index})">💬 Comentar</button>
+          <div class="comment-box">
+            ${post.comentarios.map(c => `<div class="comment">💬 ${c}</div>`).join("")}
+          </div>
+        `;
+
+        feed.appendChild(div);
+      });
+    }
+
+    // Ao abrir a página
+    mostrarUsuario();
+    carregarPosts();
+  </script>
+
+</body>
+</html>
+<button id="logoutBtn" onclick="logout()"unction logout() {
+    localStorage.removeItem("username");
+    localStorage.removeItem("profilePic");
+    location.reload();
+  } style="margin-left:auto;">Sair</button>
+function logout() {
+    localStorage.removeItem("username");
+    localStorage.removeItem("profilePic");
+    location.reload();
+  }
+  
